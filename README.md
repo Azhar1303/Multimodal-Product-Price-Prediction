@@ -148,8 +148,6 @@ The RMSE above is a documented training result, not a newly reproduced measureme
 | --- | --- |
 | `model3mark2.py` | Dataset loading, model construction, fine-tuning, validation, and checkpoint saving |
 | `vlm_inference_v4.py` | Checkpoint loading, batch inference, and CSV export |
-| `submission_v4.csv` | Included prediction output |
-| `MLRAs_Documentation.md` | Original methodology document; the supplied file is internally an OpenDocument text file despite its extension |
 | `README.md` | Project overview and usage instructions |
 
 The trained checkpoint, datasets, downloaded images, and image-download utility are not bundled with the source archive.
