@@ -1,13 +1,14 @@
 # Vision–Language Learning for Product Price Prediction
-Multimodal product price prediction using fine-tuned OpenCLIP ViT-L/14 to combine catalog descriptions and product images. Achieved Rank 30 in Amazon ML Challenge 2025.
 
 ### Multimodal price estimation from product descriptions and images
 
-Smart Product Pricing is a machine learning project that estimates product prices by combining catalog text with product images. It adapts a pretrained **OpenCLIP ViT-L/14** model to price regression, using both modalities to learn pricing signals from product descriptions, specifications, quantity information, and visual appearance.
+This project estimates product prices by combining catalog text with product images. It adapts a pretrained **OpenCLIP ViT-L/14** model to price regression, using both modalities to learn pricing signals from product descriptions, specifications, quantity information, and visual appearance.
 
 The project addresses a practical e-commerce problem: generating a reference price for a product when its catalog information is available. Such estimates can support listing workflows and help identify products that warrant a pricing review. The model learns observed prices; revenue optimization would additionally require demand, cost, and sales data.
 
 **Achievement:** Our team, **MLRAs**, achieved **Rank 30 in the Amazon ML Challenge 2025** with this project.
+
+**Repository status:** Training and inference code, along with compressed training and testing datasets, are included. Fine-tuned model weights are not included. Train the model to generate a checkpoint before running inference, or supply a compatible checkpoint separately.
 
 ## Key features
 
@@ -90,6 +91,8 @@ The explicit minimum of **1.0** matches the inference script. It ensures positiv
 
 The original problem provides **75,000 labeled training products** and **75,000 unlabeled test products**.
 
+The repository includes the dataset archives as **`training_data.zip`** and **`testing_data.zip`**. Extract them and arrange their contents as described in [Getting started](#getting-started). The scripts read CSV files and local image folders, so the ZIP files must be extracted before use.
+
 | Column | Description | Availability |
 | --- | --- | --- |
 | `sample_id` | Unique product record identifier | Train and test |
@@ -119,17 +122,14 @@ The scripts consume downloaded images from disk. They do not download images dir
 | Random seed | 42 for Python, NumPy, and PyTorch |
 | DataLoader workers | 4 |
 
-The validation split follows CSV row order; it is not randomized before splitting. The project documentation records training on an **NVIDIA RTX A6000 with 48 GB VRAM**. This is the recorded training hardware, not a measured minimum requirement.
+The validation split follows CSV row order; it is not randomized before splitting. The original training run used an **NVIDIA RTX A6000 with 48 GB VRAM**, according to the team's project notes. This is the recorded training hardware, not a measured minimum requirement.
 
 ## Results and evaluation
 
 | Result | Value | Basis |
 | --- | --- | --- |
 | Competition placement | **Rank 30** | Team-reported Amazon ML Challenge 2025 result |
-| Validation RMSE | **23.74** | Reported in the project methodology document |
-| Exported predictions | **75,000** | Included `submission_v4.csv` |
-| Unique exported sample IDs | **75,000** | Checked in the included CSV |
-| Finite, positive exported prices | **100%** | Checked in the included CSV |
+| Validation RMSE | **23.74** | Team-reported result from the original training run |
 
 The external evaluation metric is **Symmetric Mean Absolute Percentage Error (SMAPE)**:
 
@@ -138,23 +138,34 @@ $$
 \frac{|\hat{p}_i-p_i|}{(|p_i|+|\hat{p}_i|)/2}
 $$
 
-Lower is better, with values ranging from 0% to 200%. The supplied training script selects checkpoints using **validation RMSE**, while the benchmark evaluates predictions using **SMAPE**. A final SMAPE score is not recorded in the supplied project files.
+Lower is better, with values ranging from 0% to 200%. The training script selects checkpoints using **validation RMSE**, while the benchmark evaluates predictions using **SMAPE**. A final SMAPE score is not provided in this repository.
 
-The RMSE above is a documented training result, not a newly reproduced measurement. The source archive does not include the dataset, training logs, or checkpoint needed to reproduce it. CSV checks establish its row count and valid prices; exact correspondence with the test set requires the original `test.csv`.
+These results describe the original project run. Its fine-tuned checkpoint, training logs, prediction CSV, and separate methodology document are not included in this repository. Training with the included code and prepared data generates a new checkpoint; results can vary with the environment and data preparation.
 
 ## Project files
 
 | File | Purpose |
 | --- | --- |
+| `README.md` | Project overview, methodology, and usage instructions |
 | `model3mark2.py` | Dataset loading, model construction, fine-tuning, validation, and checkpoint saving |
+| `training_data.zip` | Compressed training dataset; extract before training |
+| `testing_data.zip` | Compressed testing dataset; extract before inference |
 | `vlm_inference_v4.py` | Checkpoint loading, batch inference, and CSV export |
-| `README.md` | Project overview and usage instructions |
 
-The trained checkpoint, datasets, downloaded images, and image-download utility are not bundled with the source archive.
+The table lists the five files currently included in the repository. **`best_vlm_v4.pth` and `submission_v4.csv` are generated outputs**, not bundled files. An image-download utility and a dependency version lockfile are not included.
 
 ## Getting started
 
-### 1. Install dependencies
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/Azhar1303/Multimodal-Product-Price-Prediction.git
+cd Multimodal-Product-Price-Prediction
+```
+
+Alternatively, download and extract the repository ZIP from GitHub.
+
+### 2. Install dependencies
 
 Use a Python environment with **CUDA-enabled PyTorch and matching torchvision** for GPU execution. Install the remaining dependencies with:
 
@@ -162,11 +173,22 @@ Use a Python environment with **CUDA-enabled PyTorch and matching torchvision** 
 python -m pip install open_clip_torch pandas numpy pillow tqdm
 ```
 
-The principal dependencies are Python, PyTorch, torchvision, OpenCLIP, pandas, NumPy, Pillow, and tqdm. Exact package versions were not captured in the supplied files; retain the original training environment's versions when reproducing the saved checkpoint. See the [OpenCLIP installation instructions](https://github.com/mlfoundations/open_clip#installation) for dependency setup.
+The principal dependencies are Python, PyTorch, torchvision, OpenCLIP, pandas, NumPy, Pillow, and tqdm. Exact package versions are not pinned in the repository; use the original training environment's versions if available. See the [OpenCLIP installation instructions](https://github.com/mlfoundations/open_clip#installation) for dependency setup.
 
-### 2. Configure paths
+### 3. Extract the datasets
 
-The supplied scripts contain machine-specific absolute paths. To use the directory containing the scripts as the project root, update the existing base-path assignment in each file.
+Extract the included archives using an archive manager or Python:
+
+```bash
+python -m zipfile -e training_data.zip extracted_data/training
+python -m zipfile -e testing_data.zip extracted_data/testing
+```
+
+Locate the training and test CSV files in the extracted folders, then place them at the paths below, using the filenames `train.csv` and `test.csv`. If the archives contain enclosing folders, move the CSV files out of those folders as needed. ZIP extraction alone does not configure the scripts' input paths.
+
+### 4. Configure paths and prepare images
+
+Ensure the base path in each script points to your local project directory. To use the directory containing the scripts as the root, set the existing base-path assignment as follows, if it has not already been updated.
 
 In `model3mark2.py`:
 
@@ -180,30 +202,36 @@ In `vlm_inference_v4.py`:
 BASE = os.path.dirname(os.path.abspath(__file__))
 ```
 
-Both files already import `os`. Their remaining path definitions can then use the following layout:
+Both files import `os`. With the original relative path definitions, the scripts expect the following layout:
 
 | Path relative to the project root | Contents |
 | --- | --- |
-| `student_resource/dataset/train.csv` | Labeled training records |
-| `student_resource/dataset/test.csv` | Test records to predict |
+| `student_resource/dataset/train.csv` | Training CSV extracted from `training_data.zip` |
+| `student_resource/dataset/test.csv` | Test CSV extracted from `testing_data.zip` |
 | `student_resource/dataset/train_images/` | Training images named `<sample_id>.jpg` or `<sample_id>.png` |
 | `student_resource/dataset/test_images/` | Test images with the same naming convention |
-| `vlm_runs_v4/best_vlm_v4.pth` | Saved model checkpoint |
-| `vlm_runs_v4/submission_v4.csv` | Generated predictions |
+| `vlm_runs_v4/best_vlm_v4.pth` | Generated by training; required for inference |
+| `vlm_runs_v4/submission_v4.csv` | Generated by inference |
 
-Acquire the dataset separately and download images from its provided `image_link` values. If using the original starter kit, its `src/utils.py` contains the image-download helper. That utility is not included here; ensure downloaded images follow the sample-ID naming convention expected by these scripts.
+If your local script paths have been customized, place the extracted files at those configured locations instead.
 
-### 3. Train the model
+The model also needs local product images. If images are present in the extracted archives, arrange them in the corresponding image folders. Otherwise, download them from the CSV files' `image_link` values. Name each image using its record's `sample_id`, for example `12345.jpg`, rather than relying on the filename in the URL.
+
+The training and inference scripts do not download images. If you have the original starter kit, its `src/utils.py` provides an image-download helper; that file is not part of this repository. The missing-image fallback allows records to be processed, but reproducing the multimodal setup requires preparing the product images.
+
+### 5. Train the model
+
+**Complete training before inference unless you already have a compatible fine-tuned checkpoint.** The repository does not provide the original trained weights.
 
 ```bash
 python model3mark2.py
 ```
 
-Training evaluates the model after every epoch and saves `vlm_runs_v4/best_vlm_v4.pth` whenever validation RMSE improves. The output directory is created by the training script.
+Training initializes the OpenCLIP backbone from its general pretrained weights, which must be cached locally or downloadable. It then fine-tunes the model on the prepared product dataset, evaluates it after every epoch, and saves `vlm_runs_v4/best_vlm_v4.pth` whenever validation RMSE improves. The output directory is created by the training script.
 
-### 4. Run inference
+### 6. Run inference
 
-Place the trained checkpoint at `vlm_runs_v4/best_vlm_v4.pth`, prepare the test CSV and images, and run:
+After training has created `vlm_runs_v4/best_vlm_v4.pth`, prepare the test CSV and images, then run:
 
 ```bash
 python vlm_inference_v4.py
@@ -217,7 +245,11 @@ sample_id,price
 
 Each output row contains the corresponding input sample ID and a floating-point price prediction. If a downstream workflow requires the name `test_out.csv`, rename the generated output or change the output filename in the inference script.
 
-## Saved model weights
+Running the inference script without the checkpoint at its configured path will fail when the script attempts to load it.
+
+## Model weights and generated artifacts
+
+**The fine-tuned pricing checkpoint is not published in this repository, and no separate download link is currently provided.** You can generate your own checkpoint by running the training script. If you already have a compatible saved checkpoint, place it at the path configured by `CKPT` in `vlm_inference_v4.py`.
 
 The training script saves a checkpoint named **`best_vlm_v4.pth`** containing:
 
@@ -227,11 +259,14 @@ The training script saves a checkpoint named **`best_vlm_v4.pth`** containing:
 | `head_state` | Trained price regression head state dictionary |
 | `cfg` | Backbone model name and pretrained checkpoint identifier |
 
-All three entries are needed by the existing inference script. Sharing only the regression head would omit the fine-tuned encoder weights. The checkpoint does not include optimizer or scheduler state for exact training resumption.
+All three entries are needed by the inference script. The fine-tuned image/text encoders and regression head must be loaded together. The checkpoint does not include optimizer or scheduler state for exact training resumption.
 
-For distribution, keep source code on GitHub and host the full checkpoint separately, for example in a [Hugging Face model repository](https://huggingface.co/docs/hub/models-uploading). Include a model card describing the architecture, preprocessing, evaluation, and loading instructions, and add the published download link here. GitHub Releases or Git LFS are alternatives for distributing large model files; see [GitHub's large-file guidance](https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github).
+The upstream `datacomp_xl_s13b_b90k` weights initialize the general-purpose OpenCLIP backbone. They do not contain the trained price regression head or the encoder updates learned during this project's fine-tuning, so downloading them alone does not enable price inference.
 
-The upstream [DataComp ViT-L/14 model card](https://huggingface.co/laion/CLIP-ViT-L-14-DataComp.XL-s13B-b90K) lists an MIT license. Retain applicable upstream notices when distributing weights and confirm the original dataset and participation terms permit sharing the resulting checkpoint. The source archive does not include a project-level `LICENSE` file.
+| Generated artifact | Created by | Purpose |
+| --- | --- | --- |
+| `vlm_runs_v4/best_vlm_v4.pth` | `model3mark2.py` | Best checkpoint selected by validation RMSE |
+| `vlm_runs_v4/submission_v4.csv` | `vlm_inference_v4.py` | Test sample IDs and predicted prices |
 
 ## Implementation notes and future work
 
